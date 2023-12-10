@@ -1,41 +1,22 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using NoSleep;
 
 public class WindowsPowercfgConnector
 {
     public WindowsPowercfgConnector()
     {
-
-        userPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        appDataFolderPath = Path.Combine(userPath, "NoSleep");
-        Directory.CreateDirectory(appDataFolderPath);
-        appDataFilePath = Path.Combine(appDataFolderPath, "NoSleep.cfg");
-        Console.WriteLine($"appdata path: {appDataFilePath}");
-        if (!File.Exists(appDataFilePath))
+        if (!ConfigFile.exists())
         {
             userPluggedInSleepAfterSeconds = get_plugged_in_sleep_after_seconds();
             userOnBatterySleepAfterSeconds = get_on_battery_sleep_after_seconds();
-            using (StreamWriter dataFile = new StreamWriter(appDataFilePath))
-            {
-                dataFile.WriteLine($"USER_AC_SLEEP_AFTER_INDEX {userPluggedInSleepAfterSeconds}");
-                dataFile.WriteLine($"USER_DC_SLEEP_AFTER_INDEX {userOnBatterySleepAfterSeconds}");  
-            }
+            ConfigFile.save_ac_dc_sleep_after_seconds(userPluggedInSleepAfterSeconds, userOnBatterySleepAfterSeconds);
 
         }
         else
         {
-            using (StreamReader dataFile = new StreamReader(appDataFilePath))
-            {
-                string acLine = dataFile.ReadLine();
-                string dcLine = dataFile.ReadLine();
-
-                string acSleepAfterIndex = acLine.Split(' ')[1];
-                string dcSleepAfterIndex = dcLine.Split(' ')[1];
-
-                userPluggedInSleepAfterSeconds = int.Parse(acSleepAfterIndex);
-                userOnBatterySleepAfterSeconds = int.Parse(dcSleepAfterIndex);
-            }
+            ConfigFile.read_ac_dc_sleep_after_seconds(out userPluggedInSleepAfterSeconds, out userOnBatterySleepAfterSeconds);
         }
     }
 
@@ -179,8 +160,5 @@ public class WindowsPowercfgConnector
 
     private int userPluggedInSleepAfterSeconds;
     private int userOnBatterySleepAfterSeconds;
-    private string userPath;
-    private string appDataFolderPath;
-    private string appDataFilePath;
 
 }
