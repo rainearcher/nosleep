@@ -1,7 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using NoSleep;
+
+namespace NoSleep;
 
 public class WindowsPowercfgConnector
 {
@@ -22,12 +23,14 @@ public class WindowsPowercfgConnector
 
     public void disable_sleep()
     {
+        Console.WriteLine($"computer will now never sleep");
         set_on_battery_sleep_after_seconds(0);
         set_plugged_in_sleep_after_seconds(0);
     }
 
     public void reenable_sleep()
     {
+        Console.WriteLine("computer is allowed to sleep");
         set_on_battery_sleep_after_seconds(userOnBatterySleepAfterSeconds);
         set_plugged_in_sleep_after_seconds(userPluggedInSleepAfterSeconds);
     }

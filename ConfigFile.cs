@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using NoSleep;
 
 namespace NoSleep;
 
@@ -9,30 +10,45 @@ public class ConfigFile
 
     public static void save_ac_dc_sleep_after_seconds(int acSeconds, int dcSeconds)
     {
-        string acString = $"USER_AC_SLEEP_AFTER_INDEX {acSeconds}";
-        string dcString = $"USER_DC_SLEEP_AFTER_INDEX {dcSeconds}";
-        string[] dataFileContents = {acString, dcString};
-        File.WriteAllLines(appDataFilePath, dataFileContents);
+        if (!exists())
+            create_config();
+        string[] contents = File.ReadAllLines(appDataFilePath);
+        contents[0] = acSeconds.ToString();
+        contents[1] = dcSeconds.ToString();
+        File.WriteAllLines(appDataFilePath, contents);
+    }
+
+    public static void save_sleep_on_off(bool onOff)
+    {
+        if (!exists())
+            create_config();
+        string[] contents = File.ReadAllLines(appDataFilePath);
+        contents[2] = onOff.ToString();
+        File.WriteAllLines(appDataFilePath, contents);
     }
 
     public static void read_ac_dc_sleep_after_seconds(out int acSeconds, out int dcSeconds)
     {
-        using (StreamReader dataFile = new StreamReader(appDataFilePath))
-        {
-            string acLine = dataFile.ReadLine();
-            string dcLine = dataFile.ReadLine();
+        string[] lines = File.ReadAllLines(appDataFilePath);
+        acSeconds = int.Parse(lines[0]);
+        dcSeconds = int.Parse(lines[1]);
+    }
 
-            string acSleepAfterIndex = acLine.Split(' ')[1];
-            string dcSleepAfterIndex = dcLine.Split(' ')[1];
-
-            acSeconds = int.Parse(acSleepAfterIndex);
-            dcSeconds = int.Parse(dcSleepAfterIndex);
-        }
+    public static bool read_sleep_on_off()
+    {
+        string[] contents = File.ReadAllLines(appDataFilePath);
+        return Boolean.Parse(contents[2]);
     }
 
     public static bool exists()
     {
         return File.Exists(appDataFilePath);
+    }
+
+    private static void create_config()
+    {
+        string[] contents = { "", "", "" };
+        File.WriteAllLines(appDataFilePath, contents);
     }
 
     static private string userPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);

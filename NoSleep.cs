@@ -2,6 +2,7 @@ using System;
 using System.Windows.Forms;
 using RunOnStartup;
 
+namespace NoSleep;
 public class NoSleepIcon
 {
     static void Main()
@@ -17,10 +18,13 @@ public class NoSleepIcon
 
     public NoSleepIcon()
     {
+        if (ConfigFile.exists())
+            allowedToSleep = ConfigFile.read_sleep_on_off();
         init_exit_menu_item();
         init_sleep_on_off_sleep_menu_item();
         init_context_menu();
         init_notify_icon();
+        update_icon_text();
         init_powercfg();
     }
 
@@ -35,11 +39,23 @@ public class NoSleepIcon
 
     private void init_sleep_on_off_sleep_menu_item()
     {
-        sleepOnOffMenuItem = new ToolStripMenuItem {
-            Text = "Keep PC Awake!"
-        };
+        sleepOnOffMenuItem = new ToolStripMenuItem();
         sleepOnOffMenuItem.Click += new EventHandler(sleep_on_off_menu_item_click);
 
+    }
+
+    private void update_icon_text()
+    {
+        if (allowedToSleep)
+        {
+            notifyIcon.Text = "NoSleep: PC is allowed to sleep.";
+            sleepOnOffMenuItem.Text = "Keep PC Awake!";
+        }
+        else
+        {
+            notifyIcon.Text = "NoSleep: PC will stay awake.";
+            sleepOnOffMenuItem.Text = "Allow PC to sleep.";
+        }
     }
 
     private void init_context_menu()
@@ -56,7 +72,6 @@ public class NoSleepIcon
         {
             Icon = new System.Drawing.Icon("images/moon.ico"),
             ContextMenuStrip = contextMenu,
-            Text = "NoSleep: PC is allowed to sleep.",
             Visible = true
         };
     }
@@ -64,6 +79,10 @@ public class NoSleepIcon
     private void init_powercfg()
     {
         powerCfg = new WindowsPowercfgConnector();
+        if (allowedToSleep)
+            powerCfg.reenable_sleep();
+        else
+            powerCfg.disable_sleep();
         powerCfg.debug_read_powercfg();
     }
 
@@ -72,6 +91,7 @@ public class NoSleepIcon
         notifyIcon.Dispose();
         Application.Exit();
         Startup.RemoveFromStartup();
+        powerCfg.reenable_sleep();
     }
 
     private void sleep_on_off_menu_item_click(object Sender, EventArgs e)
@@ -80,18 +100,14 @@ public class NoSleepIcon
         {
             allowedToSleep = false;
             powerCfg.disable_sleep();
-            Console.WriteLine($"computer will now never sleep");
-            sleepOnOffMenuItem.Text = "Allow PC to sleep.";
-            notifyIcon.Text = "NoSleep: PC will stay awake.";
         }
         else
         {
             allowedToSleep = true;
             powerCfg.reenable_sleep();
-            Console.WriteLine("computer is allowed to sleep");
-            sleepOnOffMenuItem.Text = "Keep PC Awake!";
-            notifyIcon.Text = "NoSleep: PC is allowed to sleep.";
         }
+        update_icon_text();
+        ConfigFile.save_sleep_on_off(allowedToSleep);
     }
 
     private WindowsPowercfgConnector powerCfg;
