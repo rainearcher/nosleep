@@ -1,10 +1,15 @@
 using System;
 using System.Windows.Forms;
+using RunOnStartup;
 
 public class NoSleepIcon
 {
     static void Main()
     {
+        if (!Startup.RunOnStartup())
+        {
+            Environment.Exit(1);
+        }
         Console.WriteLine("started NoSleep");
         var noSleep = new NoSleepIcon();
         Application.Run();
@@ -66,6 +71,7 @@ public class NoSleepIcon
     {
         notifyIcon.Dispose();
         Application.Exit();
+        Startup.RemoveFromStartup();
     }
 
     private void sleep_on_off_menu_item_click(object Sender, EventArgs e)
