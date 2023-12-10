@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoSleep", "NoSleep.csproj", "{1F6FA567-194F-4E61-B639-6C2D8EECFC97}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{615B379D-5629-4798-BB22-C809C46FB26E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{615B379D-5629-4798-BB22-C809C46FB26E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{615B379D-5629-4798-BB22-C809C46FB26E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{615B379D-5629-4798-BB22-C809C46FB26E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F6FA567-194F-4E61-B639-6C2D8EECFC97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F6FA567-194F-4E61-B639-6C2D8EECFC97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F6FA567-194F-4E61-B639-6C2D8EECFC97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F6FA567-194F-4E61-B639-6C2D8EECFC97}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
