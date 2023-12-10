@@ -126,40 +126,50 @@ public class NoSleep
 {
     static void Main()
     {
-        var powerCfg = new WindowsPowerCFG();
+        var noSleep = new NoSleep();
+        noSleep.debug_read_powercfg();
+        Application.Run();
+    }
+
+    public NoSleep()
+    {
+        init_exit_menu_item();
+        init_sleep_on_off_sleep_menu_item();
+        init_context_menu();
+        init_notify_icon();
+        init_powercfg();
+    }
+
+    public void debug_read_powercfg()
+    {
         Console.WriteLine("started NoSleep");
         var oldPluggedInValue = powerCfg.get_plugged_in_sleep_after_seconds();
         var oldOnBatteryValue = powerCfg.get_on_battery_sleep_after_seconds();
         Console.WriteLine($"when plugged in pc will sleep after {oldPluggedInValue} seconds");
         Console.WriteLine($"on battery power pc will sleep after {oldOnBatteryValue} seconds");
         powerCfg.set_plugged_in_sleep_after_seconds(0);
-        powerCfg.set_on_battery_sleep_after_seconds(0);
+        powerCfg.set_on_battery_sleep_after_seconds(240);
         Console.WriteLine($"when plugged in pc will sleep after {powerCfg.get_plugged_in_sleep_after_seconds()} seconds");
         Console.WriteLine($"on battery power pc will sleep after {powerCfg.get_on_battery_sleep_after_seconds()} seconds");
         powerCfg.set_plugged_in_sleep_after_seconds(oldPluggedInValue);
         powerCfg.set_on_battery_sleep_after_seconds(oldOnBatteryValue);
-        new NoSleep();
-        Application.Run();
     }
 
-    public NoSleep()
+    private void init_exit_menu_item()
     {
-        init_items_in_order();
-    }
-
-    private void init_items_in_order()
-    {
-        init_menu_item();
-        init_context_menu();
-        init_notify_icon();
-    }
-
-    private void init_menu_item()
-    {
-        menuItem = new ToolStripMenuItem {
+        exitMenuItem = new ToolStripMenuItem {
             Text = "E&xit"
         };
-        menuItem.Click += new EventHandler(menu_item_click);
+        exitMenuItem.Click += new EventHandler(exit_menu_item_click);
+
+    }
+
+    private void init_sleep_on_off_sleep_menu_item()
+    {
+        sleepOnOffMenuItem = new ToolStripMenuItem {
+            Text = "Keep PC Awake!"
+        };
+        sleepOnOffMenuItem.Click += new EventHandler(sleep_on_off_menu_item_click);
 
     }
 
@@ -167,7 +177,7 @@ public class NoSleep
     {
         contextMenu = new ContextMenuStrip();
         contextMenu.Items.AddRange(
-            new ToolStripMenuItem[] {menuItem});
+            new ToolStripMenuItem[] {sleepOnOffMenuItem, exitMenuItem});
 
     }
 
@@ -177,19 +187,35 @@ public class NoSleep
         {
             Icon = new System.Drawing.Icon("images/moon.ico"),
             ContextMenuStrip = contextMenu,
-            Text = "NoSleep",
+            Text = "NoSleep: PC is allowed to sleep.",
             Visible = true
         };
     }
 
-    private void menu_item_click(object Sender, EventArgs e)
+    private void init_powercfg()
+    {
+        powerCfg = new WindowsPowerCFG();
+    }
+
+    private void exit_menu_item_click(object Sender, EventArgs e)
     {
         notifyIcon.Dispose();
         Application.Exit();
     }
 
+    private void sleep_on_off_menu_item_click(object Sender, EventArgs e)
+    {
+        powerCfg.set_on_battery_sleep_after_seconds(0);
+        powerCfg.set_plugged_in_sleep_after_seconds(0);
+        Console.WriteLine($"computer will now never sleep");
+        sleepOnOffMenuItem.Text = "PC will stay awake.";
+        notifyIcon.Text = "NoSleep: PC will stay awake.";
+    }
+
+    private WindowsPowerCFG powerCfg;
     private NotifyIcon notifyIcon;
     private ContextMenuStrip contextMenu;
-    private ToolStripMenuItem menuItem;
+    private ToolStripMenuItem sleepOnOffMenuItem;
+    private ToolStripMenuItem exitMenuItem;
 }
 
