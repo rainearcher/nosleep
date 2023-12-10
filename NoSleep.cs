@@ -6,21 +6,52 @@ using Microsoft.VisualBasic;
 
 public class WindowsPowerCFG
 {
-    public int get_plugged_in_sleep_after_seconds()
+
+    public WindowsPowerCFG()
+    {
+        userPluggedInSleepAfterSeconds = get_plugged_in_sleep_after_seconds();
+        userOnBatterySleepAfterSeconds = get_on_battery_sleep_after_seconds();
+    }
+
+    public void disable_sleep()
+    {
+        set_on_battery_sleep_after_seconds(0);
+        set_plugged_in_sleep_after_seconds(0);
+    }
+
+    public void reenable_sleep()
+    {
+        set_on_battery_sleep_after_seconds(userOnBatterySleepAfterSeconds);
+        set_plugged_in_sleep_after_seconds(userPluggedInSleepAfterSeconds);
+    }
+
+    public void debug_read_powercfg()
+    {
+        Console.WriteLine($"when plugged in pc will sleep after {userPluggedInSleepAfterSeconds} seconds");
+        Console.WriteLine($"on battery power pc will sleep after {userOnBatterySleepAfterSeconds} seconds");
+        set_plugged_in_sleep_after_seconds(0);
+        set_on_battery_sleep_after_seconds(240);
+        Console.WriteLine($"when plugged in pc will sleep after {get_plugged_in_sleep_after_seconds()} seconds");
+        Console.WriteLine($"on battery power pc will sleep after {get_on_battery_sleep_after_seconds()} seconds");
+        set_plugged_in_sleep_after_seconds(userOnBatterySleepAfterSeconds);
+        set_on_battery_sleep_after_seconds(userOnBatterySleepAfterSeconds);
+    }
+
+    private int get_plugged_in_sleep_after_seconds()
     {
         return get_sleep_after_seconds(PowerReadACValue);
     }
-    public int get_on_battery_sleep_after_seconds()
+    private int get_on_battery_sleep_after_seconds()
     {
         return get_sleep_after_seconds(PowerReadDCValue);
     }
 
-    public void set_plugged_in_sleep_after_seconds(int seconds)
+    private void set_plugged_in_sleep_after_seconds(int seconds)
     {
         set_sleep_after_seconds(seconds, PowerWriteACValueIndex);
     }
 
-    public void set_on_battery_sleep_after_seconds(int seconds)
+    private void set_on_battery_sleep_after_seconds(int seconds)
     {
         set_sleep_after_seconds(seconds, PowerWriteDCValueIndex);
     }
@@ -57,6 +88,9 @@ public class WindowsPowerCFG
         return Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
 
     }
+
+    private int userPluggedInSleepAfterSeconds;
+    private int userOnBatterySleepAfterSeconds;
 
     [DllImport("powrprof.dll")]
     static extern uint PowerGetActiveScheme(
@@ -126,8 +160,8 @@ public class NoSleep
 {
     static void Main()
     {
+        Console.WriteLine("started NoSleep");
         var noSleep = new NoSleep();
-        noSleep.debug_read_powercfg();
         Application.Run();
     }
 
@@ -138,21 +172,6 @@ public class NoSleep
         init_context_menu();
         init_notify_icon();
         init_powercfg();
-    }
-
-    public void debug_read_powercfg()
-    {
-        Console.WriteLine("started NoSleep");
-        var oldPluggedInValue = powerCfg.get_plugged_in_sleep_after_seconds();
-        var oldOnBatteryValue = powerCfg.get_on_battery_sleep_after_seconds();
-        Console.WriteLine($"when plugged in pc will sleep after {oldPluggedInValue} seconds");
-        Console.WriteLine($"on battery power pc will sleep after {oldOnBatteryValue} seconds");
-        powerCfg.set_plugged_in_sleep_after_seconds(0);
-        powerCfg.set_on_battery_sleep_after_seconds(240);
-        Console.WriteLine($"when plugged in pc will sleep after {powerCfg.get_plugged_in_sleep_after_seconds()} seconds");
-        Console.WriteLine($"on battery power pc will sleep after {powerCfg.get_on_battery_sleep_after_seconds()} seconds");
-        powerCfg.set_plugged_in_sleep_after_seconds(oldPluggedInValue);
-        powerCfg.set_on_battery_sleep_after_seconds(oldOnBatteryValue);
     }
 
     private void init_exit_menu_item()
@@ -195,6 +214,7 @@ public class NoSleep
     private void init_powercfg()
     {
         powerCfg = new WindowsPowerCFG();
+        powerCfg.debug_read_powercfg();
     }
 
     private void exit_menu_item_click(object Sender, EventArgs e)
@@ -205,11 +225,22 @@ public class NoSleep
 
     private void sleep_on_off_menu_item_click(object Sender, EventArgs e)
     {
-        powerCfg.set_on_battery_sleep_after_seconds(0);
-        powerCfg.set_plugged_in_sleep_after_seconds(0);
-        Console.WriteLine($"computer will now never sleep");
-        sleepOnOffMenuItem.Text = "PC will stay awake.";
-        notifyIcon.Text = "NoSleep: PC will stay awake.";
+        if (allowedToSleep)
+        {
+            allowedToSleep = false;
+            powerCfg.disable_sleep();
+            Console.WriteLine($"computer will now never sleep");
+            sleepOnOffMenuItem.Text = "Allow PC to sleep.";
+            notifyIcon.Text = "NoSleep: PC will stay awake.";
+        }
+        else
+        {
+            allowedToSleep = true;
+            powerCfg.reenable_sleep();
+            Console.WriteLine("computer is allowed to sleep");
+            sleepOnOffMenuItem.Text = "Keep PC Awake!";
+            notifyIcon.Text = "NoSleep: PC is allowed to sleep.";
+        }
     }
 
     private WindowsPowerCFG powerCfg;
@@ -217,5 +248,6 @@ public class NoSleep
     private ContextMenuStrip contextMenu;
     private ToolStripMenuItem sleepOnOffMenuItem;
     private ToolStripMenuItem exitMenuItem;
+    private bool allowedToSleep = true;
 }
 
