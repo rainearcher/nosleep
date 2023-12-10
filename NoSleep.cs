@@ -17,38 +17,17 @@ public class WindowsPowerCFG
 
     public void set_plugged_in_sleep_after_seconds(int seconds)
     {
-        var activePolicyGuidPTR = IntPtr.Zero;
-        PowerGetActiveScheme(IntPtr.Zero, ref activePolicyGuidPTR);
-
-        var activePolicyGuid = Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
-        PowerWriteACValueIndex(
-            IntPtr.Zero,
-            ref activePolicyGuid,
-            ref GUID_SLEEP_SUBGROUP,
-            ref GUID_STANDBYIDLE,
-            seconds);
+        set_sleep_after_seconds(seconds, PowerWriteACValueIndex);
     }
 
     public void set_on_battery_sleep_after_seconds(int seconds)
     {
-        var activePolicyGuidPTR = IntPtr.Zero;
-        PowerGetActiveScheme(IntPtr.Zero, ref activePolicyGuidPTR);
-
-        var activePolicyGuid = Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
-        PowerWriteDCValueIndex(
-            IntPtr.Zero,
-            ref activePolicyGuid,
-            ref GUID_SLEEP_SUBGROUP,
-            ref GUID_STANDBYIDLE,
-            seconds);
+        set_sleep_after_seconds(seconds, PowerWriteDCValueIndex);
     }
 
     private int get_sleep_after_seconds(PowerReadValueFunction readValueFunction)
     {
-        var activePolicyGuidPTR = IntPtr.Zero;
-        PowerGetActiveScheme(IntPtr.Zero, ref activePolicyGuidPTR);
-
-        var activePolicyGuid = Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
+        var activePolicyGuid = get_active_scheme_guid();
         var type = 0;
         var value = 0;
         var valueSize = 4u;
@@ -57,6 +36,26 @@ public class WindowsPowerCFG
             ref type, ref value, ref valueSize);
 
         return value;
+    }
+
+    private void set_sleep_after_seconds(int seconds, PowerWriteValueIndexFunction powerWriteValue)
+    {
+        var activePolicyGuid = get_active_scheme_guid();
+        powerWriteValue(
+            IntPtr.Zero,
+            ref activePolicyGuid,
+            ref GUID_SLEEP_SUBGROUP,
+            ref GUID_STANDBYIDLE,
+            seconds);
+    }
+
+    private Guid get_active_scheme_guid()
+    {
+        var activePolicyGuidPTR = IntPtr.Zero;
+        PowerGetActiveScheme(IntPtr.Zero, ref activePolicyGuidPTR);
+
+        return Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
+
     }
 
     [DllImport("powrprof.dll")]
@@ -93,21 +92,28 @@ public class WindowsPowerCFG
         ref int Buffer,
         ref uint BufferSize);
 
+    private delegate uint PowerWriteValueIndexFunction(
+        IntPtr RootPowerKey,
+        ref Guid SchemeGuid,
+        ref Guid SubGroupOfPowerSettingsGuid,
+        ref Guid PowerSettingGuid,
+        int AcValueIndex);
+
     [DllImport("powrprof.dll")]
     static extern uint PowerWriteACValueIndex(
-    IntPtr RootPowerKey,
-    ref Guid SchemeGuid,
-    ref Guid SubGroupOfPowerSettingsGuid,
-    ref Guid PowerSettingGuid,
-    int AcValueIndex);
+        IntPtr RootPowerKey,
+        ref Guid SchemeGuid,
+        ref Guid SubGroupOfPowerSettingsGuid,
+        ref Guid PowerSettingGuid,
+        int AcValueIndex);
 
     [DllImport("powrprof.dll")]
     static extern uint PowerWriteDCValueIndex(
-    IntPtr RootPowerKey,
-    ref Guid SchemeGuid,
-    ref Guid SubGroupOfPowerSettingsGuid,
-    ref Guid PowerSettingGuid,
-    int AcValueIndex);
+        IntPtr RootPowerKey,
+        ref Guid SchemeGuid,
+        ref Guid SubGroupOfPowerSettingsGuid,
+        ref Guid PowerSettingGuid,
+        int AcValueIndex);
 
     private static Guid GUID_SLEEP_SUBGROUP =
         new Guid("238c9fa8-0aad-41ed-83f4-97be242c8f20");
