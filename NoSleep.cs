@@ -15,6 +15,34 @@ public class WindowsPowerCFG
         return get_sleep_after_seconds(PowerReadDCValue);
     }
 
+    public void set_plugged_in_sleep_after_seconds(int seconds)
+    {
+        var activePolicyGuidPTR = IntPtr.Zero;
+        PowerGetActiveScheme(IntPtr.Zero, ref activePolicyGuidPTR);
+
+        var activePolicyGuid = Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
+        PowerWriteACValueIndex(
+            IntPtr.Zero,
+            ref activePolicyGuid,
+            ref GUID_SLEEP_SUBGROUP,
+            ref GUID_STANDBYIDLE,
+            seconds);
+    }
+
+    public void set_on_battery_sleep_after_seconds(int seconds)
+    {
+        var activePolicyGuidPTR = IntPtr.Zero;
+        PowerGetActiveScheme(IntPtr.Zero, ref activePolicyGuidPTR);
+
+        var activePolicyGuid = Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
+        PowerWriteDCValueIndex(
+            IntPtr.Zero,
+            ref activePolicyGuid,
+            ref GUID_SLEEP_SUBGROUP,
+            ref GUID_STANDBYIDLE,
+            seconds);
+    }
+
     private int get_sleep_after_seconds(PowerReadValueFunction readValueFunction)
     {
         var activePolicyGuidPTR = IntPtr.Zero;
@@ -65,6 +93,22 @@ public class WindowsPowerCFG
         ref int Buffer,
         ref uint BufferSize);
 
+    [DllImport("powrprof.dll")]
+    static extern uint PowerWriteACValueIndex(
+    IntPtr RootPowerKey,
+    ref Guid SchemeGuid,
+    ref Guid SubGroupOfPowerSettingsGuid,
+    ref Guid PowerSettingGuid,
+    int AcValueIndex);
+
+    [DllImport("powrprof.dll")]
+    static extern uint PowerWriteDCValueIndex(
+    IntPtr RootPowerKey,
+    ref Guid SchemeGuid,
+    ref Guid SubGroupOfPowerSettingsGuid,
+    ref Guid PowerSettingGuid,
+    int AcValueIndex);
+
     private static Guid GUID_SLEEP_SUBGROUP =
         new Guid("238c9fa8-0aad-41ed-83f4-97be242c8f20");
     private static Guid GUID_STANDBYIDLE =
@@ -78,8 +122,16 @@ public class NoSleep
     {
         var powerCfg = new WindowsPowerCFG();
         Console.WriteLine("started NoSleep");
+        var oldPluggedInValue = powerCfg.get_plugged_in_sleep_after_seconds();
+        var oldOnBatteryValue = powerCfg.get_on_battery_sleep_after_seconds();
+        Console.WriteLine($"when plugged in pc will sleep after {oldPluggedInValue} seconds");
+        Console.WriteLine($"on battery power pc will sleep after {oldOnBatteryValue} seconds");
+        powerCfg.set_plugged_in_sleep_after_seconds(0);
+        powerCfg.set_on_battery_sleep_after_seconds(0);
         Console.WriteLine($"when plugged in pc will sleep after {powerCfg.get_plugged_in_sleep_after_seconds()} seconds");
-        Console.Write($"on battery power pc will sleep after {powerCfg.get_on_battery_sleep_after_seconds()} seconds");
+        Console.WriteLine($"on battery power pc will sleep after {powerCfg.get_on_battery_sleep_after_seconds()} seconds");
+        powerCfg.set_plugged_in_sleep_after_seconds(oldPluggedInValue);
+        powerCfg.set_on_battery_sleep_after_seconds(oldOnBatteryValue);
         new NoSleep();
         Application.Run();
     }
