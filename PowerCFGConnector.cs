@@ -1,12 +1,42 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 public class WindowsPowercfgConnector
 {
     public WindowsPowercfgConnector()
     {
-        userPluggedInSleepAfterSeconds = get_plugged_in_sleep_after_seconds();
-        userOnBatterySleepAfterSeconds = get_on_battery_sleep_after_seconds();
+
+        userPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        appDataFolderPath = Path.Combine(userPath, "NoSleep");
+        Directory.CreateDirectory(appDataFolderPath);
+        appDataFilePath = Path.Combine(appDataFolderPath, "NoSleep.cfg");
+        Console.WriteLine($"appdata path: {appDataFilePath}");
+        if (!File.Exists(appDataFilePath))
+        {
+            userPluggedInSleepAfterSeconds = get_plugged_in_sleep_after_seconds();
+            userOnBatterySleepAfterSeconds = get_on_battery_sleep_after_seconds();
+            using (StreamWriter dataFile = new StreamWriter(appDataFilePath))
+            {
+                dataFile.WriteLine($"USER_AC_SLEEP_AFTER_INDEX {userPluggedInSleepAfterSeconds}");
+                dataFile.WriteLine($"USER_DC_SLEEP_AFTER_INDEX {userOnBatterySleepAfterSeconds}");  
+            }
+
+        }
+        else
+        {
+            using (StreamReader dataFile = new StreamReader(appDataFilePath))
+            {
+                string acLine = dataFile.ReadLine();
+                string dcLine = dataFile.ReadLine();
+
+                string acSleepAfterIndex = acLine.Split(' ')[1];
+                string dcSleepAfterIndex = dcLine.Split(' ')[1];
+
+                userPluggedInSleepAfterSeconds = int.Parse(acSleepAfterIndex);
+                userOnBatterySleepAfterSeconds = int.Parse(dcSleepAfterIndex);
+            }
+        }
     }
 
     public void disable_sleep()
@@ -26,10 +56,10 @@ public class WindowsPowercfgConnector
         Console.WriteLine($"when plugged in pc will sleep after {userPluggedInSleepAfterSeconds} seconds");
         Console.WriteLine($"on battery power pc will sleep after {userOnBatterySleepAfterSeconds} seconds");
         set_plugged_in_sleep_after_seconds(0);
-        set_on_battery_sleep_after_seconds(240);
+        set_on_battery_sleep_after_seconds(0);
         Console.WriteLine($"when plugged in pc will sleep after {get_plugged_in_sleep_after_seconds()} seconds");
         Console.WriteLine($"on battery power pc will sleep after {get_on_battery_sleep_after_seconds()} seconds");
-        set_plugged_in_sleep_after_seconds(userOnBatterySleepAfterSeconds);
+        set_plugged_in_sleep_after_seconds(userPluggedInSleepAfterSeconds);
         set_on_battery_sleep_after_seconds(userOnBatterySleepAfterSeconds);
     }
 
@@ -84,9 +114,6 @@ public class WindowsPowercfgConnector
         return Marshal.PtrToStructure<Guid>(activePolicyGuidPTR);
 
     }
-
-    private int userPluggedInSleepAfterSeconds;
-    private int userOnBatterySleepAfterSeconds;
 
     [DllImport("powrprof.dll")]
     static extern uint PowerGetActiveScheme(
@@ -149,5 +176,11 @@ public class WindowsPowercfgConnector
         new Guid("238c9fa8-0aad-41ed-83f4-97be242c8f20");
     private static Guid GUID_STANDBYIDLE =
         new Guid("29f6c1db-86da-48c5-9fdb-f2b67b1f44da");
+
+    private int userPluggedInSleepAfterSeconds;
+    private int userOnBatterySleepAfterSeconds;
+    private string userPath;
+    private string appDataFolderPath;
+    private string appDataFilePath;
 
 }
