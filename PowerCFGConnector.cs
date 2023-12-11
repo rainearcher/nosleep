@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace NoSleep;
@@ -33,18 +32,6 @@ public class WindowsPowercfgConnector
         Console.WriteLine("computer is allowed to sleep");
         set_on_battery_sleep_after_seconds(userOnBatterySleepAfterSeconds);
         set_plugged_in_sleep_after_seconds(userPluggedInSleepAfterSeconds);
-    }
-
-    public void debug_read_powercfg()
-    {
-        Console.WriteLine($"when plugged in pc will sleep after {userPluggedInSleepAfterSeconds} seconds");
-        Console.WriteLine($"on battery power pc will sleep after {userOnBatterySleepAfterSeconds} seconds");
-        set_plugged_in_sleep_after_seconds(0);
-        set_on_battery_sleep_after_seconds(0);
-        Console.WriteLine($"when plugged in pc will sleep after {get_plugged_in_sleep_after_seconds()} seconds");
-        Console.WriteLine($"on battery power pc will sleep after {get_on_battery_sleep_after_seconds()} seconds");
-        set_plugged_in_sleep_after_seconds(userPluggedInSleepAfterSeconds);
-        set_on_battery_sleep_after_seconds(userOnBatterySleepAfterSeconds);
     }
 
     private int get_plugged_in_sleep_after_seconds()
