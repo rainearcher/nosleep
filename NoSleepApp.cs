@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using RunOnStartup;
 
@@ -11,15 +12,27 @@ public class NoSleepApp
         {
             Environment.Exit(1);
         }
+
+        if (hideConsole)
+        {
+            hide_console();
+        }
         Console.WriteLine("started NoSleep");
         new NoSleepApp();
         Application.Run();
     }
+
     public NoSleepApp()
     {
         init_allowed_to_sleep();
         init_powercfg();
         init_icon();
+    }
+    
+    private static void hide_console()
+    {
+        var handle = GetConsoleWindow();
+        ShowWindow(handle, SW_HIDE);
     }
 
     public void sleep_on_off_click()
@@ -81,7 +94,17 @@ public class NoSleepApp
             icon.set_stay_awake();
     }
 
+    [DllImport("kernel32.dll")]
+    static extern IntPtr GetConsoleWindow();
+
+    [DllImport("user32.dll")]
+    static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    const int SW_HIDE = 0;
+    const int SW_SHOW = 5;
+
     private NoSleepIcon icon;
     private WindowsPowercfgConnector powerCfg;
     private bool allowedToSleep = true;
+    private static bool hideConsole = true;
 }

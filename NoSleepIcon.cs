@@ -13,11 +13,6 @@ public class NoSleepIcon
         init_notify_icon();
     }
 
-    ~NoSleepIcon()
-    {
-        notifyIcon.Dispose();
-    }
-
     public void set_stay_awake()
     {
         notifyIcon.Text = "NoSleep: PC will stay awake.";
@@ -67,6 +62,7 @@ public class NoSleepIcon
 
     private void exit_menu_item_click(object Sender, EventArgs e)
     {
+        notifyIcon.Dispose();
         parent.exit();
     }
 
