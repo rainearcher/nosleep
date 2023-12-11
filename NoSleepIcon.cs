@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace NoSleep;
@@ -15,12 +16,14 @@ public class NoSleepIcon
 
     public void set_stay_awake()
     {
+        notifyIcon.Icon = new Icon("images/sun.ico");
         notifyIcon.Text = "NoSleep: PC will stay awake.";
         sleepOnOffMenuItem.Text = "Allow PC to sleep.";
     }
 
     public void set_allow_to_sleep()
     {
+        notifyIcon.Icon = new Icon("images/moon.ico");
         notifyIcon.Text = "NoSleep: PC is allowed to sleep.";
         sleepOnOffMenuItem.Text = "Keep PC Awake!";
     }
@@ -54,7 +57,6 @@ public class NoSleepIcon
     {
         notifyIcon = new NotifyIcon
         {
-            Icon = new System.Drawing.Icon("images/moon.ico"),
             ContextMenuStrip = contextMenu,
             Visible = true
         };
