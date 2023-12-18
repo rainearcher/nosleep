@@ -1,186 +1,115 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
+using System.Linq;
+using System.Security.Principal;
 using System.Windows.Forms;
-using Microsoft.Win32;
+using Microsoft.Win32.TaskScheduler;
 
-namespace RunOnStartup
+namespace RunOnStartup;
+
+public class Startup
 {
-    /// <summary>
-    /// It attempts to write to HKEY_LOCAL_MACHINE first, which will run on startup on all user accounts.
-    /// If it fails (due to lack of privileges), it attempts HKEY_CURRENT_USER, which will only run the program
-    /// on the current Windows account the user is logged into.
-    /// </summary>
-    public class Startup
+    static string taskName = "NoSleep";
+
+    public static bool RunOnStartup()
     {
-        /// <summary>
-        /// Adds this executable to the startup list.
-        /// </summary>
-        public static bool RunOnStartup()
-        {
-            return RunOnStartup(Application.ProductName, Application.ExecutablePath);
-        }
+        if (IsScheduled())
+            return true;
+        return Schedule();
+    }
 
-        /// <summary>
-        /// Adds the specified executable to the startup list.
-        /// </summary>
-        /// <param name="AppTitle">Registry key title.</param>
-        /// <param name="AppPath">Path of executable to run on startup.</param>
-        public static bool RunOnStartup(string AppTitle, string AppPath)
+    public static bool RemoveFromStartup()
+    {
+        return UnSchedule();
+    }
+
+
+    private static bool IsScheduled()
+    {
+        using (TaskService taskService = new TaskService())
+            return (taskService.RootFolder.AllTasks.Any(t => t.Name == taskName));
+    }
+
+    private static bool IsUserAdministrator()
+    {
+        WindowsIdentity identity = WindowsIdentity.GetCurrent();
+        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    private static bool Schedule()
+    {
+        string strExeFilePath = Application.ExecutablePath;
+
+        if (strExeFilePath is null) return true;
+
+        var userId = WindowsIdentity.GetCurrent().Name;
+
+        using (TaskDefinition td = TaskService.Instance.NewTask())
         {
-            RegistryKey rk;
+            td.RegistrationInfo.Description = "NoSleep Auto Start";
+            td.Triggers.Add(new LogonTrigger { UserId = userId, Delay = TimeSpan.FromSeconds(1) });
+            td.Actions.Add(strExeFilePath);
+
+            Console.WriteLine(strExeFilePath);
+            Console.Write(userId);
+
             try
             {
-                rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                rk.SetValue(AppTitle, AppPath);
+                TaskService.Instance.RootFolder.RegisterTaskDefinition(taskName, td);
                 return true;
             }
-            catch(Exception)
+            catch (Exception e)
             {
-            }
-
-            try
-            {
-                rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                rk.SetValue(AppTitle, AppPath);
-            }
-            catch(Exception)
-            {
+                Console.WriteLine("can't startup task");
                 return false;
             }
-            return true;
         }
+    }
 
-        /// <summary>
-        /// Removes this executable from the startup list.
-        /// </summary>
-        public static bool RemoveFromStartup()
+    private static bool UnSchedule()
+    {
+        using (TaskService taskService = new TaskService())
         {
-            return RemoveFromStartup(Application.ProductName, Application.ExecutablePath);
-        }
-
-        /// <summary>
-        /// Removes the specified executable from the startup list.
-        /// </summary>
-        /// <param name="AppTitle">Registry key title.</param>
-        public static bool RemoveFromStartup(string AppTitle)
-        {
-            return RemoveFromStartup(AppTitle, null);
-        }
-
-        /// <summary>
-        /// Removes the specified executable from the startup list.
-        /// </summary>
-        /// <param name="AppTitle">Registry key title.</param>
-        /// <param name="AppPath">Path of executable in the registry that's being run on startup.</param>
-        public static bool RemoveFromStartup(string AppTitle, string AppPath)
-        {
-            RegistryKey rk;
             try
             {
-                rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                if(AppPath == null)
-                {
-                    rk.DeleteValue(AppTitle);
-                }
-                else
-                {
-                    if(rk.GetValue(AppTitle).ToString().ToLower() == AppPath.ToLower())
-                    {
-                        rk.DeleteValue(AppTitle);
-                    }
-                }
+                taskService.RootFolder.DeleteTask(taskName);
                 return true;
             }
-            catch(Exception)
+            catch (Exception e)
             {
-            }
-
-            try
-            {
-                rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                if(AppPath == null)
-                {
-                    rk.DeleteValue(AppTitle);
-                }
-                else
-                {
-                    if(rk.GetValue(AppTitle).ToString().ToLower() == AppPath.ToLower())
-                    {
-                        rk.DeleteValue(AppTitle);
-                    }
-                }
-            }
-            catch(Exception)
-            {
+                Console.WriteLine("can't remove task");
                 return false;
             }
-            return true;
         }
+    }
 
-        /// <summary>
-        /// Checks if this executable is in the startup list.
-        /// </summary>
-        /// <returns></returns>
-        public static bool IsInStartup()
+    private static long lastAdmin;
+
+    private static void RunAsAdmin(string? param = null)
+    {
+
+        if (Math.Abs(DateTimeOffset.Now.ToUnixTimeMilliseconds() - lastAdmin) < 2000) return;
+        lastAdmin = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+        // Check if the current user is an administrator
+        if (!IsUserAdministrator())
         {
-            return IsInStartup(Application.ProductName, Application.ExecutablePath);
-        }
-
-        /// <summary>
-        /// Checks if specified executable is in the startup list.
-        /// </summary>
-        /// <param name="AppTitle">Registry key title.</param>
-        /// <param name="AppPath">Path of the executable.</param>
-        /// <returns></returns>
-        public static bool IsInStartup(string AppTitle, string AppPath)
-        {
-            RegistryKey rk;
-            string value;
-
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.UseShellExecute = true;
+            startInfo.WorkingDirectory = Environment.CurrentDirectory;
+            startInfo.FileName = Application.ExecutablePath;
+            startInfo.Arguments = param;
+            startInfo.Verb = "runas";
             try
             {
-                rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                value = rk.GetValue(AppTitle).ToString();
-                if(value == null)
-                {
-                    return false;
-                }
-                else if(!value.ToLower().Equals(AppPath.ToLower()))
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
+                Process.Start(startInfo);
+                Application.Exit();
             }
-            catch(Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
             }
-
-            try
-            {
-                rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                value = rk.GetValue(AppTitle).ToString();
-                if(value == null)
-                {
-                    return false;
-                }
-                else if(!value.ToLower().Equals(AppPath.ToLower()))
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-            catch(Exception)
-            {
-            }
-
-            return false;
         }
     }
 }
