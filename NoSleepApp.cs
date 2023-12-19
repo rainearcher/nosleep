@@ -8,10 +8,7 @@ public class NoSleepApp
 {
     static void Main()
     {
-        if (!Startup.RunOnStartup())
-        {
-            Environment.Exit(1);
-        }
+        Startup.RunOnStartup();
 
         if (hideConsole)
         {
