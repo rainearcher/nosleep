@@ -52,6 +52,7 @@ public class NoSleepApp
         allowedToSleep = false;
         powerCfg.disable_sleep();
         icon.set_stay_awake();
+        ConfigFile.save_sleep_on_off(false);
     }
 
     private void enable_sleep()
@@ -59,6 +60,7 @@ public class NoSleepApp
         allowedToSleep = true;
         powerCfg.reenable_sleep();
         icon.set_allow_to_sleep();
+        ConfigFile.save_sleep_on_off(true);
     }
 
     public void exit()
@@ -70,10 +72,7 @@ public class NoSleepApp
 
     private void init_allowed_to_sleep()
     {
-        if (ConfigFile.exists())
-            allowedToSleep = ConfigFile.read_sleep_on_off();
-        else
-            allowedToSleep = true;
+        allowedToSleep = ConfigFile.read_sleep_on_off();
     }
 
     private void init_powercfg()
